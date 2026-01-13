@@ -1,0 +1,11 @@
+# Configurare statică Traefik
+entryPoints:
+  web:
+    address: ":80" # Punctul de intrare HTTP pe portul 80
+
+providers:
+  docker:
+    exposedByDefault: false # Expune manual doar containerele pe care le dorim
+
+api:
+  insecure: true # Activează dashboard-ul Traefik (util pt. debug)

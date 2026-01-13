@@ -1,0 +1,109 @@
+services:
+  # Baza de date PostgreSQL
+  postgres_db:
+    image: postgres:14-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: energy_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Montează scriptul de inițializare pentru cele 3 baze
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  # Microserviciul de Autentificare
+  auth_service:
+    build: ./auth_service
+    container_name: auth_service
+    restart: on-failure
+    depends_on: [postgres_db]
+    environment:
+      DATABASE_URL: "postgresql://user:password@postgres_db/auth_db"
+      SECRET_KEY: "un-secret-foarte-sigur-default"
+      USER_SERVICE_URL: "http://user_service:8000/users/"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth-router.rule=PathPrefix(`/auth`)"
+      - "traefik.http.routers.auth-router.service=auth-service"
+      - "traefik.http.services.auth-service.loadbalancer.server.port=8000"
+
+  # Microserviciul de Utilizatori
+  user_service:
+    build: ./user_service
+    container_name: user_service
+    restart: on-failure
+    depends_on: [postgres_db]
+    environment:
+      DATABASE_URL: "postgresql://user:password@postgres_db/user_db"
+      SECRET_KEY: "un-secret-foarte-sigur-default"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.users-router.rule=PathPrefix(`/users`)"
+      - "traefik.http.routers.users-router.service=users-service"
+      - "traefik.http.services.users-service.loadbalancer.server.port=8000"
+
+  # Microserviciul de Dispozitive
+  device_service:
+    build: ./device_service
+    container_name: device_service
+    restart: on-failure
+    depends_on: [postgres_db]
+    environment:
+      DATABASE_URL: "postgresql://user:password@postgres_db/device_db"
+      SECRET_KEY: "un-secret-foarte-sigur-default"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.devices-router.rule=PathPrefix(`/devices`)"
+      - "traefik.http.routers.devices-router.service=devices-service"
+      - "traefik.http.services.devices-service.loadbalancer.server.port=8000"
+
+  # Message Broker (RabbitMQ)
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"   # Portul pentru comunicare (AMQP)
+      - "15672:15672" # Portul pentru Dashboard Web
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  monitoring_service:
+    build: ./monitoring_service
+    container_name: monitoring_service
+    restart: on-failure
+    depends_on: [postgres_db, rabbitmq]
+    environment:
+      DATABASE_URL: "postgresql://user:password@postgres_db/monitoring_db"
+      RABBIT_HOST: "rabbitmq"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.monitoring.rule=PathPrefix(`/monitoring`)"
+      - "traefik.http.services.monitoring.loadbalancer.server.port=8000"
+
+  # Reverse Proxy (API Gateway)
+  reverse-proxy:
+    image: traefik:v2.9
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+# --- SECȚIUNEA CARE ÎȚI LIPSEA ---
+volumes:
+  postgres_data:
