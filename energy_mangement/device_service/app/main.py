@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from . import models, schemas, database, security
 from fastapi.middleware.cors import CORSMiddleware
+import pika
+import json
 
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -34,18 +36,45 @@ def read_devices(
         return db.query(models.Device).filter(models.Device.owner_id == current_user["id"]).all()
 
 
+def send_device_sync(device_id: int, user_id: int, max_consumption: float, operation: str):
+    try:
+        # Ne conectăm la containerul 'rabbitmq' definit în docker-compose
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
+        channel = connection.channel()
+
+        # Declarăm coada 'device_sync_queue'
+        channel.queue_declare(queue='device_sync_queue', durable=True)
+
+        message = {
+            "device_id": device_id,
+            "user_id": user_id,
+            "max_hourly_consumption": max_consumption,
+            "operation": operation  # "CREATE", "UPDATE", "DELETE"
+        }
+
+        channel.basic_publish(
+            exchange='',
+            routing_key='device_sync_queue',
+            body=json.dumps(message)
+        )
+        connection.close()
+        print(f" [x] Sent sync event for device {device_id}")
+    except Exception as e:
+        print(f"Error connecting to RabbitMQ: {e}")
+
 # --- OPERAȚII DOAR PENTRU ADMIN (Create, Update, Delete, Mapping) ---
 
 @app.post("/", response_model=schemas.Device)
-def create_device(
-        device: schemas.DeviceCreate,
-        db: Session = Depends(database.get_db),
-        admin: dict = Depends(security.require_admin)  # Doar admin
-):
+def create_device(device: schemas.DeviceCreate, db: Session = Depends(database.get_db),
+                  admin: dict = Depends(security.require_admin)):
     db_device = models.Device(**device.dict())
     db.add(db_device)
     db.commit()
     db.refresh(db_device)
+
+    # Sincronizare A2: Anunțăm Monitoring Service că a apărut un device nou
+    send_device_sync(db_device.id, db_device.user_id, db_device.max_hourly_consumption, "CREATE")
+
     return db_device
 
 
@@ -82,4 +111,5 @@ def delete_device(
 
     db.delete(db_device)
     db.commit()
+    send_device_sync(device_id, 0, 0, "DELETE")
     return {"detail": "Device deleted"}

@@ -26,7 +26,7 @@ QUEUE_NAME = 'sensor_data'
 
 def generate_sensor_value():
     current_hour = datetime.now().hour
-    base_load = 0.5
+    base_load = 100
     if 18 <= current_hour <= 22:
         base_load += 2.0
     elif 8 <= current_hour <= 17:

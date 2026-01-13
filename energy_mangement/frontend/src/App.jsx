@@ -8,11 +8,14 @@ import AdminDashboard from './pages/AdminDashboard';   // <-- Importăm fișieru
 import ClientDashboard from './pages/ClientDashboard'; // <-- Importăm fișierul real
 import PrivateRoute from './components/PrivateRoute';
 import DeviceHistory from './pages/DeviceHistory';
+import NotificationComponent from './components/NotificationComponent';
 
 function App() {
   return (
     <>
       <ToastContainer position="top-right" autoClose={3000} />
+
+      <NotificationComponent />
 
       <Routes>
         <Route path="/login" element={<Login />} />

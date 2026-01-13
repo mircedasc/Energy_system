@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useContext } from 'react'; // 1. Am adăugat useContext
 import { jwtDecode } from "jwt-decode";
 import { useNavigate } from 'react-router-dom';
 
@@ -7,7 +7,6 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('token'));
-    // Folosim un state de loading ca să nu dăm redirect înainte să verificăm tokenul
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -15,7 +14,7 @@ export const AuthProvider = ({ children }) => {
         if (token) {
             try {
                 const decoded = jwtDecode(token);
-                // Verificăm dacă tokenul a expirat (exp e în secunde, Date.now() în milisecunde)
+                // Verificăm expirarea (exp e în secunde)
                 if (decoded.exp * 1000 < Date.now()) {
                     logout();
                 } else {
@@ -35,7 +34,6 @@ export const AuthProvider = ({ children }) => {
         const decoded = jwtDecode(newToken);
         setUser(decoded);
 
-        // Redirecționare automată în funcție de rol
         if (decoded.role === "Administrator") {
             navigate('/admin');
         } else {
@@ -55,6 +53,12 @@ export const AuthProvider = ({ children }) => {
             {!loading && children}
         </AuthContext.Provider>
     );
+};
+
+// 2. ACEASTA ESTE PARTEA CARE LIPSEA ȘI PROVOCA EROAREA
+// Exportăm un hook custom ca să nu mai scriem useContext(AuthContext) peste tot
+export const useAuth = () => {
+    return useContext(AuthContext);
 };
 
 export default AuthContext;

@@ -89,6 +89,21 @@ services:
       - "traefik.http.routers.monitoring.rule=PathPrefix(`/monitoring`)"
       - "traefik.http.services.monitoring.loadbalancer.server.port=8000"
 
+  websocket_service:
+    build: ./communication_service
+    container_name: websocket_service
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBIT_HOST: "rabbitmq"
+    labels:
+      - "traefik.enable=true"
+      # Prinde tot ce începe cu /ws
+      - "traefik.http.routers.websocket.rule=PathPrefix(`/ws`)"
+      # Specificăm portul intern (CRITIC!)
+      - "traefik.http.services.websocket.loadbalancer.server.port=8000"
+
   # Reverse Proxy (API Gateway)
   reverse-proxy:
     image: traefik:v2.9
