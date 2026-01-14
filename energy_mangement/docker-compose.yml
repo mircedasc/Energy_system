@@ -104,6 +104,21 @@ services:
       # Specificăm portul intern (CRITIC!)
       - "traefik.http.services.websocket.loadbalancer.server.port=8000"
 
+  chat_service:
+    build: ./chat_service
+    container_name: chat_service
+    restart: on-failure
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBIT_HOST: "rabbitmq"
+      # PUNE CHEIA TA AICI (sau într-un fișier .env)
+      GEMINI_API_KEY: "AIzaSyARoJYgZgkSfpxELVglcxs1Ws79w1Xjq58"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chat.rule=PathPrefix(`/chat`)"
+      - "traefik.http.services.chat.loadbalancer.server.port=8000"
+
   # Reverse Proxy (API Gateway)
   reverse-proxy:
     image: traefik:v2.9

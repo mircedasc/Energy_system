@@ -2,9 +2,11 @@ import { useEffect, useState, useContext } from 'react';
 import api from '../api/axios';
 import { toast } from 'react-toastify';
 import AuthContext from '../context/AuthContext';
+import ChatComponent from '../components/ChatComponent';
+import { useAuth } from '../context/AuthContext'; // Asigură-te că ai acces la user
 
 const AdminDashboard = () => {
-    const { logout } = useContext(AuthContext);
+    const { user, logout } = useAuth();
     const [users, setUsers] = useState([]);
     const [devices, setDevices] = useState([]);
     const [activeTab, setActiveTab] = useState('users');
@@ -176,6 +178,7 @@ const AdminDashboard = () => {
                     </table>
                 </>
             )}
+            <ChatComponent userId={user?.id} isAdmin={true} />
         </div>
     );
 };

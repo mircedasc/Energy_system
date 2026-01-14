@@ -69,14 +69,17 @@ def start_rabbitmq_consumer():
                 try:
                     data = json.loads(body)
                     user_id = data.get("user_id")
-                    message = data.get("message")
+
+                    # FIX: Nu extragem doar mesajul, ci trimitem tot obiectul JSON ca string
+                    # Astfel frontend-ul poate verifica data.type === 'chat'
+                    full_payload = json.dumps(data)
 
                     print(f" [RABBIT] Processing alert for User {user_id}", flush=True)
 
-                    if user_id and message and main_loop:
-                        # --- FIXUL MAGIC: Trimitem în bucla principală ---
+                    if user_id and main_loop:
                         asyncio.run_coroutine_threadsafe(
-                            manager.send_personal_message(message, int(user_id)),
+                            # Trimitem JSON-ul complet
+                            manager.send_personal_message(full_payload, int(user_id)),
                             main_loop
                         )
                     else:

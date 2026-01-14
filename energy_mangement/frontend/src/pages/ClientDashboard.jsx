@@ -2,10 +2,12 @@ import { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import AuthContext from '../context/AuthContext';
+import ChatComponent from '../components/ChatComponent';
+import { useAuth } from '../context/AuthContext'; // Asigură-te că ai acces la user
 
 const ClientDashboard = () => {
     // Extragem funcția logout și userul din context
-    const { user, logout } = useContext(AuthContext);
+    const { user, logout } = useAuth();
 
     const [devices, setDevices] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -99,6 +101,7 @@ const ClientDashboard = () => {
                     </tbody>
                 </table>
             )}
+            <ChatComponent userId={user?.id} isAdmin={false} />
         </div>
     );
 };

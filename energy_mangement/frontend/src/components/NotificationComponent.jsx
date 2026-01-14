@@ -1,81 +1,69 @@
-import React, { useEffect, useState } from 'react';
-// 1. Sintaxa CORECTĂ (fără "from" în interiorul acoladelor)
-import { useAuth } from '../context/AuthContext';
+import React, { useEffect } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useAuth } from '../context/AuthContext'; // Importăm Auth Context
 
 const NotificationComponent = () => {
-    const [notifications, setNotifications] = useState([]);
-
-    // 2. Folosim hook-ul creat anterior
+    // Luăm user-ul direct din Context, nu mai așteptăm props
     const { user } = useAuth();
-    const userId = user?.id;
+    const userId = user?.id; // Extragem ID-ul sigur
 
     useEffect(() => {
-        // Dacă nu avem user logat, nu ne conectăm
+        // Dacă nu suntem logați, nu facem nimic
         if (!userId) return;
 
-        console.log("Connecting WebSocket for User:", userId);
-        const ws = new WebSocket(`ws://localhost/ws/connect/${userId}`);
+        console.log(` [Notif] Connecting for User ${userId}...`);
+        const socketUrl = `ws://localhost/ws/connect/${userId}`;
+        const ws = new WebSocket(socketUrl);
 
-        ws.onopen = () => {
-            console.log('Connected to Notification Service');
-        };
+        ws.onopen = () => console.log(" [Notif] WebSocket Connected ✅");
 
         ws.onmessage = (event) => {
-            console.log("Alert received:", event.data);
-            const message = event.data;
-            const id = Date.now();
+            try {
+                const data = JSON.parse(event.data);
 
-            setNotifications((prev) => [...prev, { id, text: message }]);
+                // 1. IGNORĂM CHAT-UL (acesta e treaba ChatComponent)
+                if (data.type === 'chat') {
+                    return;
+                }
 
-            // Ștergem notificarea după 5 secunde
-            setTimeout(() => {
-                setNotifications((prev) => prev.filter(n => n.id !== id));
-            }, 5000);
+                // 2. AFIȘĂM ALERTA
+                // Extragem doar textul din câmpul "message"
+                if (data.message) {
+                    toast.error(`⚠️ ${data.message}`, {
+                        position: "top-right",
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                    });
+                }
+            } catch (error) {
+                // Ignorăm erorile de parsare
+            }
         };
 
-        ws.onclose = () => {
-            console.log('Disconnected from Notification Service');
-        };
+        ws.onclose = () => console.log(" [Notif] WebSocket Disconnected ❌");
 
         return () => {
-            ws.close();
+            if (ws.readyState === 1) ws.close();
         };
-    }, [userId]);
+    }, [userId]); // Se reactivează automat când te loghezi (se schimbă userId)
 
-    // Dacă nu sunt notificări, nu afișăm nimic
-    if (notifications.length === 0) return null;
-
-    // Stiluri inline pentru simplitate
-    const containerStyle = {
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px'
-    };
-
-    const alertStyle = {
-        backgroundColor: '#ff4444',
-        color: 'white',
-        padding: '16px',
-        borderRadius: '8px',
-        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-        fontSize: '14px',
-        fontWeight: 'bold',
-        minWidth: '300px',
-        animation: 'fadeIn 0.5s'
-    };
-
+    // Randăm containerul de toast aici, ca să fie disponibil în toată aplicația
     return (
-        <div style={containerStyle}>
-            {notifications.map((n) => (
-                <div key={n.id} style={alertStyle}>
-                    ⚠️ {n.text}
-                </div>
-            ))}
-        </div>
+        <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+        />
     );
 };
 

@@ -17,6 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # --- CRUD PENTRU ADMIN SI CLIENT ---
 
 @app.get("/", response_model=List[schemas.Device])
@@ -62,6 +63,7 @@ def send_device_sync(device_id: int, user_id: int, max_consumption: float, opera
     except Exception as e:
         print(f"Error connecting to RabbitMQ: {e}")
 
+
 # --- OPERAȚII DOAR PENTRU ADMIN (Create, Update, Delete, Mapping) ---
 
 @app.post("/", response_model=schemas.Device)
@@ -72,8 +74,13 @@ def create_device(device: schemas.DeviceCreate, db: Session = Depends(database.g
     db.commit()
     db.refresh(db_device)
 
+    # --- FIX CRITIC AICI ---
+    # Folosim owner_id (cum e in DB), nu user_id.
+    # De asemenea, tratăm cazul în care owner_id e None (device neasignat)
+    sync_user_id = db_device.owner_id if db_device.owner_id else 0
+
     # Sincronizare A2: Anunțăm Monitoring Service că a apărut un device nou
-    send_device_sync(db_device.id, db_device.user_id, db_device.max_hourly_consumption, "CREATE")
+    send_device_sync(db_device.id, sync_user_id, db_device.max_hourly_consumption, "CREATE")
 
     return db_device
 
@@ -96,6 +103,11 @@ def update_device(
 
     db.commit()
     db.refresh(db_device)
+
+    # --- FIX OPȚIONAL: Sincronizăm și la Update (dacă se schimbă max_consumption sau ownerul) ---
+    sync_user_id = db_device.owner_id if db_device.owner_id else 0
+    send_device_sync(db_device.id, sync_user_id, db_device.max_hourly_consumption, "UPDATE")
+
     return db_device
 
 

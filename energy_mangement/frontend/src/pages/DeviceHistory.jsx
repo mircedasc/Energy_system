@@ -38,7 +38,15 @@ const DeviceHistory = () => {
                 setLoading(false);
             }
         };
+
+        // Apelăm imediat
         fetchHistory();
+
+        // Setăm intervalul de 3 secunde
+        const intervalId = setInterval(fetchHistory, 3000);
+
+        // Curățăm intervalul când ieșim de pe pagină
+        return () => clearInterval(intervalId);
     }, [deviceId]);
 
     // 2. Procesare Date
