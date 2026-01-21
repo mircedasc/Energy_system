@@ -74,9 +74,6 @@ def create_device(device: schemas.DeviceCreate, db: Session = Depends(database.g
     db.commit()
     db.refresh(db_device)
 
-    # --- FIX CRITIC AICI ---
-    # Folosim owner_id (cum e in DB), nu user_id.
-    # De asemenea, tratăm cazul în care owner_id e None (device neasignat)
     sync_user_id = db_device.owner_id if db_device.owner_id else 0
 
     # Sincronizare A2: Anunțăm Monitoring Service că a apărut un device nou
