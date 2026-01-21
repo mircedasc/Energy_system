@@ -70,8 +70,7 @@ def start_rabbitmq_consumer():
                     data = json.loads(body)
                     user_id = data.get("user_id")
 
-                    # FIX: Nu extragem doar mesajul, ci trimitem tot obiectul JSON ca string
-                    # Astfel frontend-ul poate verifica data.type === 'chat'
+                    #Nu extragem doar mesajul, ci trimitem tot obiectul JSON ca string
                     full_payload = json.dumps(data)
 
                     print(f" [RABBIT] Processing alert for User {user_id}", flush=True)

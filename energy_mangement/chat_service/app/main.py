@@ -37,7 +37,7 @@ if api_key:
 
         # Algoritm de selecție: Preferăm Flash -> Pro -> Primul găsit
         selected_model = None
-        preferences = ["models/gemini-2.0-flash", "models/gemini-pro", "models/gemini-1.0-pro"]
+        preferences = ["models/gemini-1.5-flash", "models/gemini-pro", "models/gemini-1.0-pro"]
 
         for pref in preferences:
             if pref in available_models:
@@ -103,7 +103,7 @@ async def send_message(msg: Message):
 
     # 2. CLIENT -> SISTEM
     text = msg.message.lower()
-    keywords_admin = ["admin", "operator", "uman", "help", "ajutor"]
+    keywords_admin = ["/admin"]
 
     # A. Cere Operator
     if any(k in text for k in keywords_admin):
@@ -120,6 +120,10 @@ async def send_message(msg: Message):
         response = "Luni-Vineri: 09:00 - 17:00."
     elif "contact" in text:
         response = "Email: contact@energy.com"
+    elif "pret" in text:
+        response = "Pretul este de 0.80 RON pe kW."
+    elif "ajutor" in text:
+        response = "Daca ai nevoie sa contactezi un operator foloseste "+ "/admin" + " in fata mesajului tau."
     else:
         # AI Logic
         if model:
