@@ -113,7 +113,7 @@ services:
     environment:
       RABBIT_HOST: "rabbitmq"
       # PUNE CHEIA TA AICI (sau într-un fișier .env)
-      GEMINI_API_KEY: "AIzaSyDPPayT6dLKXH2e9iAeolclmmo_4SHeFgE"
+      GEMINI_API_KEY: "MY API KEY"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.chat.rule=PathPrefix(`/chat`)"
